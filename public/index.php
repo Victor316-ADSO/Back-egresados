@@ -8,8 +8,6 @@ use Psr\Container\ContainerInterface;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Server\RequestHandlerInterface as RequestHandler;
 
-
-
 // Carga .env
 if (file_exists(__DIR__ . '/../.env')) {
     $dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/../');
@@ -38,26 +36,34 @@ function getDatabase() {
 // Crear la app
 $app = AppFactory::create();
 
-// Set base path for /back_egresados/public
+// Base path (ajústalo según la carpeta donde está tu public)
 $app->setBasePath('/back_egresados/public');
 
-// Middleware para parseo de body y routing
+// Middleware básico
 $app->addBodyParsingMiddleware();
 $app->addRoutingMiddleware();
 
-// Global error middleware to return JSON on errors (including 404)
+// 🔥 CORS Middleware (este reemplaza el del .htaccess)
+$app->add(function (Request $request, RequestHandler $handler) {
+    $response = $handler->handle($request);
+    return $response
+        ->withHeader('Access-Control-Allow-Origin', '*')
+        ->withHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, Accept, Origin, Authorization')
+        ->withHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+        ->withHeader('Access-Control-Allow-Credentials', 'true');
+});
+
+// 🔥 Manejar preflight OPTIONS directamente
+$app->options('/{routes:.+}', function ($request, $response) {
+    return $response;
+});
+
+// Error handling global (mantén esto al final de los middlewares)
 $errorMiddleware = $app->addErrorMiddleware(true, true, true);
 $errorHandler = $errorMiddleware->getDefaultErrorHandler();
 $errorHandler->forceContentType('application/json');
 
-// CORS manejado por Apache .htaccess - solo pasar la petición
-$app->add(function (Request $request, RequestHandler $handler) {
-    return $handler->handle($request);
-});
-
-// CORS manejado completamente por Apache .htaccess
-
-// Ruta básica para la raíz
+// Ruta básica
 $app->get('/', function ($request, $response, $args) {
     $data = [
         'message' => 'API de Egresados CURN funcionando correctamente',
@@ -75,13 +81,13 @@ $app->get('/', function ($request, $response, $args) {
     return $response->withHeader('Content-Type', 'application/json');
 });
 
-// Ruta de prueba simple
+// Rutas de prueba y tus módulos
 $app->get('/test', function ($request, $response) {
     $response->getBody()->write(json_encode(['message' => 'Slim funciona correctamente']));
     return $response->withHeader('Content-Type', 'application/json');
 });
 
-// Registrar rutas
+// Registrar tus rutas
 $authRoutes = require __DIR__ . '/../src/routes/auth.php';
 $authRoutes($app);  
 
@@ -91,35 +97,28 @@ $preguntasRoutes($app);
 $respuestasRoutes = require __DIR__ . '/../src/routes/respuestas.php';
 $respuestasRoutes($app);
 
-// Ruta para guardar respuestas
 $guardarRespuestaRoutes = require __DIR__ . '/../src/routes/guardar_respuesta.php';
 $guardarRespuestaRoutes($app);
 
-// Cuestionario routes (protected)
 $cuestionarioRoutes = require __DIR__ . '/../src/routes/cuestionario.php';
 $cuestionarioRoutes($app);
 
-// Obtener respuestas del usuario (última encuesta)
 $obtenerRespuestasRoutes = require __DIR__ . '/../src/routes/obtener_respuestas.php';
 $obtenerRespuestasRoutes($app);
 
-// Test token route
 $testRoutes = require __DIR__ . '/../src/routes/test.php';
 $testRoutes($app);
 
-// Programas
 $programasRoutes = require __DIR__ . '/../src/routes/programas.php';
 $programasRoutes($app);
 
-// Rutas de usuario
 $usuarioRoutes = require __DIR__ . '/../src/routes/usuario.php';
 $usuarioRoutes($app);
 
-// Rutas de reset token
 $resetTokenRoutes = require __DIR__ . '/../src/routes/reset_token.php';
 $resetTokenRoutes($app);
 
-// Debug route to inspect Authorization header quickly (remove in prod)
+// Rutas debug (opcionales)
 $app->get('/debug-auth', function ($request, $response) {
     $headers = $request->getHeaders();
     $auth = $request->getHeaderLine('Authorization');
@@ -132,8 +131,7 @@ $app->get('/debug-auth', function ($request, $response) {
     return $response->withHeader('Content-Type', 'application/json');
 });
 
-// Debug route to see available routes
-$app->get('/debug-routes', function ($request, $response) {
+$app->get('/debug-routes', function ($request, $response) use ($app) {
     $routes = [];
     foreach ($app->getRouteCollector()->getRoutes() as $route) {
         $routes[] = [
