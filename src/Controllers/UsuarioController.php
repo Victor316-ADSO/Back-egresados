@@ -62,15 +62,11 @@ class UsuarioController extends BaseController
                     p.lexp_pais,
                     p.lexp_regi,
                     p.lexp_ciud,
-                    p.dire_pers,
-                    p.barr_pers,
-                    p.telf_pers,
-                    p.mail_pers,
-                    p.timo_iden,
-                    prog.nomb_prog
+                    p.esta_pers,
+                    prog.EvalDNomb_Prog as nomb_prog
                 FROM egresados e
-                INNER JOIN personas p ON e.iden_pers = p.codi_iden
-                LEFT JOIN programa prog ON e.codi_prog = prog.codi_prog
+                INNER JOIN personas p ON e.iden_pers = p.iden_pers
+                LEFT JOIN programa prog ON e.codi_prog = prog.EvalDCod_Prog
                 WHERE e.iden_pers = ? AND e.codi_prog = ?
             ");
             $stmt->execute([$userData->iden_pers, $userData->codi_prog]);
@@ -122,42 +118,152 @@ class UsuarioController extends BaseController
 
             $db = $this->getDatabase();
             
-            // Actualizar datos de la persona
-            $updateFields = [];
-            $params = [];
-            
-            if (isset($data['mail_pers'])) {
-                $updateFields[] = "mail_pers = ?";
-                $params[] = $data['mail_pers'];
-            }
-            if (isset($data['telf_pers'])) {
-                $updateFields[] = "telf_pers = ?";
-                $params[] = $data['telf_pers'];
-            }
-            if (isset($data['dire_pers'])) {
-                $updateFields[] = "dire_pers = ?";
-                $params[] = $data['dire_pers'];
-            }
-            if (isset($data['barr_pers'])) {
-                $updateFields[] = "barr_pers = ?";
-                $params[] = $data['barr_pers'];
-            }
-
-            if (empty($updateFields)) {
-                return $this->errorResponse($response, 'No hay campos para actualizar', 400);
-            }
-
-            $params[] = $userData->iden_pers;
-            
-            $sql = "UPDATE personas SET " . implode(", ", $updateFields) . " WHERE codi_iden = ?";
-            $stmt = $db->prepare($sql);
-            $stmt->execute($params);
-
-            return $this->successResponse($response, 'Perfil actualizado correctamente', []);
+            // Los datos de contacto se actualizan en tecni_datos_contacto, no en personas
+            // Retornar mensaje indicando que esta funcionalidad usa otro endpoint
+            return $this->successResponse($response, 'Use el endpoint /api/usuario/contacto para actualizar datos de contacto', []);
             
         } catch (Exception $e) {
             error_log("Error en updatePerfil: " . $e->getMessage());
             return $this->errorResponse($response, 'Error al actualizar perfil', 500);
+        }
+    }
+
+    /**
+     * Obtiene los datos de contacto del usuario
+     * 
+     * @param Request $request
+     * @param Response $response
+     * @param array $args
+     * @return Response
+     */
+    public function getContacto(Request $request, Response $response, array $args): Response
+    {
+        try {
+            $jwt = $request->getHeaderLine('Authorization');
+            if (empty($jwt)) {
+                return $this->errorResponse($response, 'Token de autorización requerido', 401);
+            }
+            
+            $jwt = str_replace('Bearer ', '', $jwt);
+            $decoded = $this->verifyJwtToken($jwt);
+            
+            if (!$decoded) {
+                return $this->errorResponse($response, 'Token inválido o expirado', 401);
+            }
+
+            $userData = (array) $decoded;
+            
+            $db = $this->getDatabase();
+            $stmt = $db->prepare("SELECT * FROM tecni_datos_contacto WHERE iden_pers = ?");
+            $stmt->execute([$userData['data']->iden_pers]);
+            $contacto = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$contacto) {
+                // Si no existe, retornar datos vacíos
+                return $this->successResponse($response, 'No hay datos de contacto registrados', []);
+            }
+
+            return $this->successResponse($response, 'Datos de contacto obtenidos correctamente', $contacto);
+            
+        } catch (Exception $e) {
+            error_log("Error en getContacto: " . $e->getMessage());
+            return $this->errorResponse($response, 'Error al obtener datos de contacto', 500);
+        }
+    }
+
+    /**
+     * Actualiza o crea los datos de contacto del usuario
+     * 
+     * @param Request $request
+     * @param Response $response
+     * @param array $args
+     * @return Response
+     */
+    public function updateContacto(Request $request, Response $response, array $args): Response
+    {
+        try {
+            $jwt = $request->getHeaderLine('Authorization');
+            if (empty($jwt)) {
+                return $this->errorResponse($response, 'Token de autorización requerido', 401);
+            }
+            
+            $jwt = str_replace('Bearer ', '', $jwt);
+            $decoded = $this->verifyJwtToken($jwt);
+            
+            if (!$decoded) {
+                return $this->errorResponse($response, 'Token inválido o expirado', 401);
+            }
+
+            $userData = (array) $decoded;
+            $data = $this->getJsonInput($request);
+            
+            if (!$data) {
+                return $this->errorResponse($response, 'Datos JSON inválidos', 400);
+            }
+
+            $db = $this->getDatabase();
+            
+            // Verificar si ya existe registro
+            $stmt = $db->prepare("SELECT iden_pers FROM tecni_datos_contacto WHERE iden_pers = ?");
+            $stmt->execute([$userData['data']->iden_pers]);
+            $existe = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($existe) {
+                // Actualizar
+                $updateFields = [];
+                $params = [];
+                
+                if (isset($data['celular'])) {
+                    $updateFields[] = "celular = ?";
+                    $params[] = $data['celular'];
+                }
+                if (isset($data['telefono_alternativo'])) {
+                    $updateFields[] = "telefono_alternativo = ?";
+                    $params[] = $data['telefono_alternativo'];
+                }
+                if (isset($data['email_institucional'])) {
+                    $updateFields[] = "email_institucional = ?";
+                    $params[] = $data['email_institucional'];
+                }
+                if (isset($data['email_alternativo'])) {
+                    $updateFields[] = "email_alternativo = ?";
+                    $params[] = $data['email_alternativo'];
+                }
+                if (isset($data['direccion_residencia'])) {
+                    $updateFields[] = "direccion_residencia = ?";
+                    $params[] = $data['direccion_residencia'];
+                }
+                
+                if (empty($updateFields)) {
+                    return $this->errorResponse($response, 'No hay campos para actualizar', 400);
+                }
+                
+                $params[] = $userData['data']->iden_pers;
+                $sql = "UPDATE tecni_datos_contacto SET " . implode(", ", $updateFields) . " WHERE iden_pers = ?";
+                $stmt = $db->prepare($sql);
+                $stmt->execute($params);
+            } else {
+                // Insertar
+                $stmt = $db->prepare("
+                    INSERT INTO tecni_datos_contacto 
+                    (iden_pers, celular, telefono_alternativo, email_institucional, email_alternativo, direccion_residencia) 
+                    VALUES (?, ?, ?, ?, ?, ?)
+                ");
+                $stmt->execute([
+                    $userData['data']->iden_pers,
+                    $data['celular'] ?? null,
+                    $data['telefono_alternativo'] ?? null,
+                    $data['email_institucional'] ?? null,
+                    $data['email_alternativo'] ?? null,
+                    $data['direccion_residencia'] ?? null
+                ]);
+            }
+
+            return $this->successResponse($response, 'Datos de contacto actualizados correctamente', []);
+            
+        } catch (Exception $e) {
+            error_log("Error en updateContacto: " . $e->getMessage());
+            return $this->errorResponse($response, 'Error al actualizar datos de contacto', 500);
         }
     }
 }

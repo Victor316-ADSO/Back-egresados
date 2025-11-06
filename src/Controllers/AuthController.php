@@ -31,6 +31,12 @@ class AuthController extends BaseController
         try {
             $data = $this->getJsonInput($request);
             
+            // Log para debugging
+            error_log("Login attempt - Raw body: " . $request->getBody()->getContents());
+            $request->getBody()->rewind(); // Rebobinar para que getJsonInput funcione
+            $data = $this->getJsonInput($request);
+            error_log("Login attempt - Parsed data: " . json_encode($data));
+            
             if (!$data) {
                 return $this->errorResponse($response, 'Datos JSON inválidos', 400);
             }
