@@ -9,8 +9,9 @@ AppFactory::setContainer($aux);
 $app = AppFactory::create();
 $container = $app->getContainer();
 
-// Establecer base path (si estás en un subdirectorio)
-$app->setBasePath('/back_egresados');
+// Establecer base path (solo para Apache con subdirectorio)
+// DESCOMENTADO para usar servidor PHP integrado
+// $app->setBasePath('/back_egresados');
 
 // Middleware CORS global
 $app->add(function($request, $handler){
