@@ -1,0 +1,61 @@
+### Variables
+@baseUrl = http://localhost/back_egresados
+
+### 1. Test - Página principal
+GET {{baseUrl}}/
+
+### 2. Test - API Test
+GET {{baseUrl}}/api/test
+
+### 3. Ver todas las rutas (debug)
+GET {{baseUrl}}/debug-routes
+
+### 4. Listar programas
+GET {{baseUrl}}/api/programas
+
+### 5. Programa por ID
+GET {{baseUrl}}/api/programas/123
+
+### 6. Listar preguntas
+GET {{baseUrl}}/api/preguntas
+
+### 7. Login (actualiza con datos reales)
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "programa": "123",
+  "identificacion": "1234567890"
+}
+
+### 8. Verificar token (requiere token del login)
+GET {{baseUrl}}/api/auth/verify
+Authorization: Bearer TU_TOKEN_AQUI
+
+### 9. Refrescar token
+POST {{baseUrl}}/api/auth/refresh
+Authorization: Bearer TU_TOKEN_AQUI
+
+### 10. Ver perfil de usuario
+GET {{baseUrl}}/api/usuario/perfil
+Authorization: Bearer TU_TOKEN_AQUI
+
+### 11. Actualizar perfil
+PUT {{baseUrl}}/api/usuario/perfil
+Content-Type: application/json
+Authorization: Bearer TU_TOKEN_AQUI
+
+{
+  "mail_pers": "nuevo@email.com",
+  "telf_pers": "3001234567"
+}
+
+### 12. Responder cuestionario
+POST {{baseUrl}}/api/cuestionario/responder
+Content-Type: application/json
+Authorization: Bearer TU_TOKEN_AQUI
+
+{
+  "id_pregunta": 1,
+  "respuesta": "Mi respuesta aquí"
+}
