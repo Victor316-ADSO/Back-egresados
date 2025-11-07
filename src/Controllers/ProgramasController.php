@@ -19,7 +19,7 @@ class ProgramasController extends BaseController
     }
 
     /**
-     * Obtiene la lista de programas académicos
+     * Obtiene la lista de programas académicos (solo técnicos laborales)
      * 
      * @param Request $request
      * @param Response $response
@@ -31,12 +31,12 @@ class ProgramasController extends BaseController
         try {
             $db = $this->getDatabase();
             
-            // Lista de posibles consultas para diferentes esquemas
+            // Lista de posibles consultas para diferentes esquemas - SOLO TÉCNICOS LABORALES
             $queries = [
-                "SELECT EvalDCod_Prog AS codigo, EvalDNomb_Prog AS nombre FROM programa",
-                "SELECT codi_prog AS codigo, nomb_prog AS nombre FROM programa",
-                "SELECT codigo, nombre FROM programa",
-                "SELECT * FROM programa LIMIT 10"
+                "SELECT EvalDCod_Prog AS codigo, EvalDNomb_Prog AS nombre FROM programa WHERE UPPER(EvalDNomb_Prog) LIKE '%TECNICO LABORAL%' OR UPPER(EvalDNomb_Prog) LIKE '%TÉCNICO LABORAL%'",
+                "SELECT codi_prog AS codigo, nomb_prog AS nombre FROM programa WHERE UPPER(nomb_prog) LIKE '%TECNICO LABORAL%' OR UPPER(nomb_prog) LIKE '%TÉCNICO LABORAL%'",
+                "SELECT codigo, nombre FROM programa WHERE UPPER(nombre) LIKE '%TECNICO LABORAL%' OR UPPER(nombre) LIKE '%TÉCNICO LABORAL%'",
+                "SELECT * FROM programa WHERE UPPER(nombre) LIKE '%TECNICO LABORAL%' OR UPPER(nombre) LIKE '%TÉCNICO LABORAL%' OR UPPER(nomb_prog) LIKE '%TECNICO LABORAL%' OR UPPER(nomb_prog) LIKE '%TÉCNICO LABORAL%' OR UPPER(EvalDNomb_Prog) LIKE '%TECNICO LABORAL%' OR UPPER(EvalDNomb_Prog) LIKE '%TÉCNICO LABORAL%'"
             ];
 
             $programas = [];
@@ -58,13 +58,13 @@ class ProgramasController extends BaseController
             }
 
             if (empty($programas)) {
-                return $this->successResponse($response, 'No se encontraron programas en la base de datos', [
+                return $this->successResponse($response, 'No se encontraron programas técnicos laborales en la base de datos', [
                     'programas' => [],
                     'debug' => $lastError
                 ]);
             }
 
-            return $this->successResponse($response, 'Programas obtenidos correctamente', [
+            return $this->successResponse($response, 'Programas técnicos laborales obtenidos correctamente', [
                 'programas' => $programas
             ]);
             

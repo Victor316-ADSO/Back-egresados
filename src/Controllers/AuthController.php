@@ -174,4 +174,138 @@ class AuthController extends BaseController
             'message' => 'Token eliminado del lado del cliente'
         ]);
     }
+
+    /**
+     * Obtiene el texto de autorización de tratamiento de datos
+     * 
+     * @param Request $request
+     * @param Response $response
+     * @param array $args
+     * @return Response
+     */
+    public function getAutorizacion(Request $request, Response $response, array $args): Response
+    {
+        try {
+            $apiUrl = 'https://axis.uninunez.edu.co/apiLDAP/api/authdb/get';
+            $data = json_encode(['dbcod' => '21']);
+
+            $ch = curl_init($apiUrl);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                'Accept: application/json',
+                'Content-Type: application/json'
+            ]);
+
+            $result = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            
+            if (curl_errno($ch)) {
+                $error = curl_error($ch);
+                curl_close($ch);
+                return $this->errorResponse($response, 'Error al conectar con el servicio de autorización: ' . $error, 500);
+            }
+            
+            curl_close($ch);
+
+            if ($httpCode !== 200) {
+                return $this->errorResponse($response, 'Error al obtener autorización', $httpCode);
+            }
+
+            return $this->successResponse($response, 'Autorización obtenida correctamente', [
+                'contenido' => $result
+            ]);
+            
+        } catch (Exception $e) {
+            error_log("Error en getAutorizacion: " . $e->getMessage());
+            return $this->errorResponse($response, 'Error al obtener autorización: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Registra la aceptación de tratamiento de datos
+     * 
+     * @param Request $request
+     * @param Response $response
+     * @param array $args
+     * @return Response
+     */
+    public function setAutorizacion(Request $request, Response $response, array $args): Response
+    {
+        try {
+            // Obtener datos del body JSON
+            $data = $this->getJsonInput($request);
+            
+            if (!$data) {
+                return $this->errorResponse($response, 'Datos JSON inválidos', 400);
+            }
+            
+            $dni = $data['dni'] ?? $data['userdni'] ?? null;
+            
+            if (!$dni) {
+                return $this->errorResponse($response, 'El DNI es requerido', 400);
+            }
+
+            // Obtener IP del cliente
+            $ip = $_SERVER['REMOTE_ADDR'] ?? '';
+            if (isset($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+                $ip = $_SERVER['HTTP_X_FORWARDED_FOR'];
+            }
+
+            // Log para debugging
+            error_log("Registrando autorización - DNI: $dni, IP: $ip");
+
+            $apiUrl = 'https://axis.uninunez.edu.co/apiLDAP/api/authdb/set';
+            $payload = json_encode([
+                'dbcod' => '21',
+                'app' => 'EGRESADOS-UPDATE',
+                'userdni' => $dni,
+                'ip' => $ip
+            ]);
+
+            error_log("Payload enviado al API: $payload");
+
+            $ch = curl_init($apiUrl);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                'Accept: application/json',
+                'Content-Type: application/json'
+            ]);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // Para desarrollo
+            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false); // Para desarrollo
+
+            $result = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            
+            error_log("Respuesta del API - HTTP Code: $httpCode, Response: $result");
+            
+            if (curl_errno($ch)) {
+                $error = curl_error($ch);
+                curl_close($ch);
+                error_log("Error CURL: $error");
+                return $this->errorResponse($response, 'Error al conectar con el servicio de autorización: ' . $error, 500);
+            }
+            
+            curl_close($ch);
+
+            if ($httpCode !== 200) {
+                return $this->errorResponse($response, 'Error al registrar autorización. Código HTTP: ' . $httpCode, $httpCode);
+            }
+
+            $resultData = json_decode($result, true);
+
+            return $this->successResponse($response, 'Autorización registrada correctamente', [
+                'resultado' => $resultData,
+                'dni' => $dni,
+                'ip' => $ip
+            ]);
+            
+        } catch (Exception $e) {
+            error_log("Error en setAutorizacion: " . $e->getMessage());
+            return $this->errorResponse($response, 'Error al registrar autorización: ' . $e->getMessage(), 500);
+        }
+    }
 }

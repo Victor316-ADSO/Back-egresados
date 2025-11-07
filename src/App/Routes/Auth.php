@@ -14,4 +14,10 @@ $group->group('/auth', function(RouteCollectorProxy $subgroup){
 
     // Logout (cerrar sesión)
     $subgroup->post('/logout', 'App\Controllers\AuthController:logout');
+
+    // Obtener texto de autorización de tratamiento de datos
+    $subgroup->get('/autorizacion/get', 'App\Controllers\AuthController:getAutorizacion');
+    
+    // Registrar aceptación de tratamiento de datos
+    $subgroup->post('/autorizacion/set', 'App\Controllers\AuthController:setAutorizacion');
 });

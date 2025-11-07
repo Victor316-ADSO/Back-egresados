@@ -10,16 +10,27 @@ GET {{baseUrl}}/api/test
 ### 3. Ver todas las rutas (debug)
 GET {{baseUrl}}/debug-routes
 
-### 4. Listar programas
+### 4. Listar programas (solo técnicos laborales)
 GET {{baseUrl}}/api/programas
 
 ### 5. Programa por ID
 GET {{baseUrl}}/api/programas/123
 
-### 6. Listar preguntas
+### 6. Obtener texto de autorización de tratamiento de datos
+GET {{baseUrl}}/api/auth/autorizacion/get
+
+### 7. Registrar aceptación de tratamiento de datos
+POST {{baseUrl}}/api/auth/autorizacion/set
+Content-Type: application/json
+
+{
+  "dni": "1234567890"
+}
+
+### 8. Listar preguntas
 GET {{baseUrl}}/api/preguntas
 
-### 7. Login (actualiza con datos reales)
+### 9. Login (actualiza con datos reales)
 POST {{baseUrl}}/api/auth/login
 Content-Type: application/json
 
@@ -28,19 +39,19 @@ Content-Type: application/json
   "identificacion": "1234567890"
 }
 
-### 8. Verificar token (requiere token del login)
+### 10. Verificar token (requiere token del login)
 GET {{baseUrl}}/api/auth/verify
 Authorization: Bearer TU_TOKEN_AQUI
 
-### 9. Refrescar token
+### 11. Refrescar token
 POST {{baseUrl}}/api/auth/refresh
 Authorization: Bearer TU_TOKEN_AQUI
 
-### 10. Ver perfil de usuario
+### 12. Ver perfil de usuario
 GET {{baseUrl}}/api/usuario/perfil
 Authorization: Bearer TU_TOKEN_AQUI
 
-### 11. Actualizar perfil
+### 13. Actualizar perfil
 PUT {{baseUrl}}/api/usuario/perfil
 Content-Type: application/json
 Authorization: Bearer TU_TOKEN_AQUI
@@ -50,7 +61,7 @@ Authorization: Bearer TU_TOKEN_AQUI
   "telf_pers": "3001234567"
 }
 
-### 12. Responder cuestionario
+### 14. Responder cuestionario
 POST {{baseUrl}}/api/cuestionario/responder
 Content-Type: application/json
 Authorization: Bearer TU_TOKEN_AQUI
